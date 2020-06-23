@@ -9,3 +9,5 @@ Play "3 Truths and a Lie" with friends online
 - Comment code
 - Cleanup code (reorg, remove unused, etc)
 - Hide "host-only" buttons (like "Start Game") for all but the game's host
+- CSS Styling (pick something simple!)
+- Figure out deploying/hosting for Lamdera
