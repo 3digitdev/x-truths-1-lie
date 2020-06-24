@@ -71,10 +71,10 @@ update msg model =
                                     }
 
                                 allAnswers =
-                                    Debug.log "lie" nextPlayer.lie :: Debug.log "truths" nextPlayer.truths
+                                    nextPlayer.lie :: nextPlayer.truths
                             in
                             ( { model | games = model.games |> Dict.insert newGame.id_ newGame }
-                            , Random.generate (AnswersShuffled newGame) (RL.shuffle (Debug.log "allAnswers" allAnswers))
+                            , Random.generate (AnswersShuffled newGame) (RL.shuffle allAnswers)
                             )
 
                         Nothing ->
@@ -104,7 +104,7 @@ update msg model =
             -- New active player's answers are now shuffled, tell the players about the new round
             let
                 newGame =
-                    { game | currentAnswers = Debug.log "shuffled" shuffledAnswers }
+                    { game | currentAnswers = shuffledAnswers }
             in
             ( { model
                 | games =
@@ -197,10 +197,6 @@ update msg model =
 
 updateFromFrontend : SessionId -> ClientId -> ToBackend -> Model -> ( Model, Cmd BackendMsg )
 updateFromFrontend sessionId clientId msg model =
-    let
-        _ =
-            Debug.log clientId
-    in
     case msg of
         ClientJoin ->
             -- New client connected to the backend, nothing done yet.  Tell the client their ID
@@ -362,9 +358,7 @@ updateFromFrontend sessionId clientId msg model =
                             game.players
                                 |> List.map (\pid -> subModel.players |> Dict.get pid)
                                 |> Maybe.Extra.values
-                                |> Debug.log "All From subModel"
                                 |> List.map .status
-                                |> Debug.log "Statuses from subModel"
 
                         newGame =
                             if game |> allPlayersAre Guessed subModel then
@@ -505,7 +499,7 @@ updateClientMap gameId clientId clientMap =
             (clientMap
                 |> Dict.get gameId
                 |> Maybe.withDefault []
-                |> List.append (Debug.log "clientIDs" [ clientId ])
+                |> List.append [ clientId ]
             )
 
 

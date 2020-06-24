@@ -1,0 +1,58 @@
+body {
+    font-family: sans-serif;
+    background-color: #FADAB3;
+}
+
+h1 {
+    font-size: 48pt;
+    margin-block-end: 1rem;
+}
+
+.error {
+    color: #f03d4d;
+    font-weight: bolder;
+    font-size: 14pt;
+}
+
+div.container {
+    text-align: center;
+}
+
+div.flexCenter {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+}
+
+div.formField {
+    font-size: 16pt;
+    margin: 1rem;
+}
+
+label {
+    font-size: 16pt;
+    font-weight: bolder;
+}
+
+input.formInput {
+    min-height: 2rem;
+    font-size: 16pt;
+}
+
+
+button.largeButton {
+    font-size: 20pt;
+    min-width: 12rem;
+    background-color: #252025;
+    color: #FEFEFE;
+    margin-top: 10px;
+    height: 4rem;
+    border: 0;
+    box-shadow: 0 0 8px #888888;
+}
+
+button.largeButton:active {
+    background-color: #FEFEFE;
+    color: #252025;
+}

@@ -221,6 +221,11 @@ toString status =
             "[Finished]"
 
 
+isHostOf : Game -> PlayerId -> Bool
+isHostOf game playerId =
+    playerId == game.hostPlayer
+
+
 renderErrorSection : Model -> Html FrontendMsg
 renderErrorSection model =
     div [ class "errorList" ]
@@ -234,20 +239,32 @@ renderHomePage model =
     div
         [ class "container" ]
         [ h1 [] [ text "3 Truths 1 Lie" ]
-        , label [ for "gameId" ] [ text "Game ID:" ]
-        , input
-            [ Html.Attributes.id "gameId"
-            , onInput UpdatedGameId
+        , table [ class "gameForm", align "center" ]
+            [ tr [ class "formField", align "right" ]
+                [ td [] [ label [ for "gameId" ] [ text "Game ID:" ] ]
+                , td []
+                    [ input
+                        [ Html.Attributes.id "gameId"
+                        , type_ "text"
+                        , class "formInput"
+                        , onInput UpdatedGameId
+                        ]
+                        []
+                    ]
+                ]
+            , tr [ class "formField", align "right" ]
+                [ td [] [ label [ for "playerName" ] [ text "Player Name:" ] ]
+                , td []
+                    [ input
+                        [ Html.Attributes.id "playerName"
+                        , type_ "text"
+                        , class "formInput"
+                        , onInput UpdatedName
+                        ]
+                        []
+                    ]
+                ]
             ]
-            []
-        , br [] []
-        , label [ for "playerName" ] [ text "playerName:" ]
-        , input
-            [ Html.Attributes.id "playerName"
-            , onInput UpdatedName
-            ]
-            []
-        , br [] []
         , button
             [ class "largeButton"
             , onClick HostGame
@@ -309,7 +326,7 @@ renderGamePage gameState model =
         startButtonHidden =
             case model.game of
                 Just game ->
-                    case ( game.hostPlayer == model.playerName, gameState ) of
+                    case ( model.playerName |> isHostOf game, gameState ) of
                         ( True, AllReady ) ->
                             ""
 
