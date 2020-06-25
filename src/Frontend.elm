@@ -1,11 +1,13 @@
 module Frontend exposing (..)
 
-import Browser exposing (UrlRequest(..))
+import Browser exposing (Document, UrlRequest(..))
 import Browser.Navigation as Nav
-import Dict exposing (empty)
+import Dict exposing (..)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick, onInput)
+import Ionicon
+import Ionicon.Android as Android
 import Lamdera exposing (sendToBackend)
 import List.Extra exposing (setAt)
 import String exposing (fromInt)
@@ -25,11 +27,7 @@ app =
         , update = update
         , updateFromBackend = updateFromBackend
         , subscriptions = \_ -> Sub.none
-        , view =
-            \model ->
-                { title = "3 Truths 1 Lie"
-                , body = [ view model ]
-                }
+        , view = view
         }
 
 
@@ -202,25 +200,6 @@ updateFromBackend msg model =
             )
 
 
-toString : Status -> String
-toString status =
-    case status of
-        Ready ->
-            "[Ready]"
-
-        NotReady ->
-            "[Not Ready]"
-
-        Guessed ->
-            "[Guessed]"
-
-        Guessing ->
-            "[Guessing]"
-
-        Finished ->
-            "[Finished]"
-
-
 isHostOf : Game -> PlayerId -> Bool
 isHostOf game playerId =
     playerId == game.hostPlayer
@@ -234,9 +213,9 @@ renderErrorSection model =
         )
 
 
-renderHomePage : FrontendModel -> Html FrontendMsg
+renderHomePage : FrontendModel -> List (Html FrontendMsg)
 renderHomePage model =
-    div
+    [ div
         [ class "container" ]
         [ h1 [] [ text "3 Truths 1 Lie" ]
         , table [ class "gameForm", align "center" ]
@@ -277,106 +256,164 @@ renderHomePage model =
             [ text "Join a Game" ]
         , renderErrorSection model
         ]
+    ]
 
 
-renderGameTemplate : FrontendModel -> List (Html FrontendMsg) -> Html FrontendMsg
+renderGameTemplate : FrontendModel -> List (Html FrontendMsg) -> List (Html FrontendMsg)
 renderGameTemplate model content =
-    div
-        []
+    [ div [ class "playerContainer" ]
+        [ h3 [] [ text "Players" ]
+        , ul [ class "playerList" ]
+            (model.allPlayers
+                |> Dict.map
+                    (\name player ->
+                        let
+                            ( icon, iconColor ) =
+                                case player.status of
+                                    NotReady ->
+                                        ( Android.close, Types.redIcon )
+
+                                    Guessing ->
+                                        ( Android.moreHorizontal, Types.redIcon )
+
+                                    _ ->
+                                        ( Android.checkmarkCircle, Types.greenIcon )
+                        in
+                        li [ class "playerCard" ]
+                            [ div [ class "playerDiv" ]
+                                [ icon 32 iconColor
+                                , p [ class "playerName" ]
+                                    [ text
+                                        (name
+                                            ++ " - "
+                                            ++ String.fromInt player.score
+                                            ++ " points "
+                                        )
+                                    ]
+                                ]
+                            ]
+                    )
+                |> Dict.values
+            )
+        ]
+    , div
+        [ class "container" ]
         (content
             |> List.append
                 [ h1 [] [ text "3 Truths 1 Lie" ]
-                , h2 [] [ text model.gameId ]
-                , h3 [] [ text "Players:" ]
-                , ul [ class "playerList" ]
-                    (model.allPlayers
-                        |> Dict.map
-                            (\name player ->
-                                li [ class "playerCard" ]
-                                    [ text
-                                        (name
-                                            ++ ": "
-                                            ++ String.fromInt player.score
-                                            ++ " points "
-                                            ++ toString player.status
-                                        )
-                                    ]
-                            )
-                        |> Dict.values
-                    )
                 ]
         )
+    ]
 
 
-renderGamePage : GameState -> FrontendModel -> Html FrontendMsg
+renderGamePage : GameState -> FrontendModel -> List (Html FrontendMsg)
 renderGamePage gameState model =
     let
-        formHidden =
+        ( formHidden, waitingHidden ) =
             case model.allPlayers |> Dict.get model.playerName of
                 Just player ->
                     if player.status == Ready then
-                        " hideForm"
+                        ( " hidden", "" )
 
                     else
-                        ""
+                        ( "", " hidden" )
 
                 Nothing ->
-                    ""
+                    ( "", " hidden" )
 
-        startButtonHidden =
+        ( startButtonHidden, waitingText ) =
             case model.game of
                 Just game ->
                     case ( model.playerName |> isHostOf game, gameState ) of
                         ( True, AllReady ) ->
-                            ""
+                            ( "", "Everyone is ready!" )
+
+                        ( False, AllReady ) ->
+                            ( " hidden", "Waiting for host to start the game..." )
 
                         ( _, _ ) ->
-                            " hideStartButton"
+                            ( " hidden", "Waiting for other players..." )
 
                 Nothing ->
-                    " hideStartButton"
+                    ( " hidden", "Waiting for other players..." )
     in
     renderGameTemplate model
-        [ h3 [] [ text "Please submit your Truths and Lie:" ]
-        , div
-            [ class ("answerForm" ++ formHidden) ]
-            ([ label [ for "lie" ] [ text "Lie:" ]
-             , input [ Html.Attributes.id "lie", onInput UpdatedLie ] []
-             , br [] []
-             , button
-                [ class "largeButton", onClick SubmitAnswers ]
-                [ text "Submit Answers" ]
-             , renderErrorSection model
+        [ h3 [ class formHidden ] [ text "Please submit your Truths and Lie:" ]
+        , table
+            [ class ("answerForm" ++ formHidden), align "center" ]
+            ([ tr [ align "right" ]
+                [ td []
+                    [ label
+                        [ class "answerLabel"
+                        , for "lie"
+                        ]
+                        [ text "Lie:" ]
+                    ]
+                , td []
+                    [ input
+                        [ class "answerInput"
+                        , Html.Attributes.id "lie"
+                        , onInput UpdatedLie
+                        ]
+                        []
+                    ]
+                ]
              ]
                 |> List.append
                     ([ 1, 2, 3 ]
                         |> List.map
                             (\idx ->
-                                [ label [ for ("truth" ++ fromInt idx) ] [ text ("Truth #" ++ fromInt idx ++ ":") ]
-                                , input
-                                    [ Html.Attributes.id ("truth" ++ fromInt idx)
-                                    , onInput (UpdatedTruth (idx - 1))
+                                [ tr [ align "right" ]
+                                    [ td []
+                                        [ label
+                                            [ class "answerLabel", for ("truth" ++ fromInt idx) ]
+                                            [ text ("Truth #" ++ fromInt idx ++ ":") ]
+                                        ]
+                                    , td []
+                                        [ input
+                                            [ class "answerInput"
+                                            , Html.Attributes.id ("truth" ++ fromInt idx)
+                                            , onInput (UpdatedTruth (idx - 1))
+                                            ]
+                                            []
+                                        ]
                                     ]
-                                    []
-                                , br [] []
                                 ]
                             )
                         |> List.concat
                     )
             )
+        , button
+            [ class ("largeButton" ++ formHidden), onClick SubmitAnswers ]
+            [ text "Submit Answers" ]
+        , h3 [ class waitingHidden ] [ text waitingText ]
+        , renderErrorSection model
         , div [ class ("startButtonContainer" ++ startButtonHidden) ]
             [ button [ class "largeButton", onClick StartGame ] [ text "Start Game" ] ]
         ]
 
 
-renderGuessPage : FrontendModel -> Html FrontendMsg
+renderGuessPage : FrontendModel -> List (Html FrontendMsg)
 renderGuessPage model =
+    let
+        ( hideClass, waitClass ) =
+            case model.allPlayers |> Dict.get model.playerName of
+                Just player ->
+                    if player.status == Guessed then
+                        ( " hidden", "" )
+
+                    else
+                        ( "", " hidden" )
+
+                Nothing ->
+                    ( "", " hidden" )
+    in
     case model.game of
         Just game ->
             case ( game.activePlayer, game.currentAnswers ) of
                 ( Just activePlayer, activeAnswers ) ->
                     renderGameTemplate model
-                        [ h3 [] [ text ("Guessing for " ++ activePlayer.id_) ]
+                        [ h3 [] [ text ("Guessing for: " ++ activePlayer.id_) ]
                         , div [ class "activeAnswers" ]
                             (activeAnswers
                                 |> List.indexedMap
@@ -401,7 +438,12 @@ renderGuessPage model =
                                             [ text answer.text ]
                                     )
                             )
-                        , button [ class "submitGuess", onClick SubmitGuess ] [ text "Submit Guess" ]
+                        , button
+                            [ class ("largeButton" ++ hideClass)
+                            , onClick SubmitGuess
+                            ]
+                            [ text "Submit Guess" ]
+                        , h3 [ class waitClass ] [ text "Waiting for other players..." ]
                         ]
 
                 ( Nothing, _ ) ->
@@ -413,32 +455,46 @@ renderGuessPage model =
                 [ h1 [] [ text "FATAL ERROR, NO GAME" ] ]
 
 
-renderResultsPage : FrontendModel -> Html FrontendMsg
+renderResultsPage : FrontendModel -> List (Html FrontendMsg)
 renderResultsPage model =
     case model.game of
         Just game ->
+            let
+                ( hideClass, waitClass, waitText ) =
+                    if model.playerName |> isHostOf game then
+                        ( "", " hidden", "" )
+
+                    else
+                        ( " hidden", "", "Waiting for host to continue..." )
+            in
             case game.activePlayer of
                 Just activePlayer ->
                     renderGameTemplate model
                         -- TODO:  Hide button for all but host
                         ([ button
-                            [ class "largeButton"
+                            [ class ("largeButton" ++ hideClass)
                             , onClick GoToNextRound
                             ]
                             [ text "Next Round" ]
+                         , h3 [ class waitClass ] [ text waitText ]
                          ]
                             |> List.append
-                                (h4 [] [ text (activePlayer.id_ ++ "'s answers:") ]
+                                (h3 [] [ text (activePlayer.id_ ++ "'s answers:") ]
                                     :: ((activePlayer.lie :: activePlayer.truths)
                                             |> List.map
                                                 (\answer ->
                                                     case answer.type_ of
                                                         Truth ->
-                                                            h3 [ class "truthAnswer" ] [ text ("TRUTH: " ++ answer.text) ]
+                                                            [ h3 [ class "truthAnswer" ] [ text "TRUTH:" ]
+                                                            , h4 [] [ text answer.text ]
+                                                            ]
 
                                                         Lie ->
-                                                            h3 [ class "lieAnswer" ] [ text ("LIE: " ++ answer.text) ]
+                                                            [ h3 [ class "lieAnswer" ] [ text "LIE:" ]
+                                                            , h4 [] [ text answer.text ]
+                                                            ]
                                                 )
+                                            |> List.concat
                                        )
                                 )
                         )
@@ -452,33 +508,58 @@ renderResultsPage model =
                 [ h1 [] [ text "FATAL ERROR, NO GAME" ] ]
 
 
-renderFinalPage : FrontendModel -> Html FrontendMsg
+renderFinalPage : FrontendModel -> List (Html FrontendMsg)
 renderFinalPage model =
-    div [] [ text "Final Page" ]
+    let
+        topPlayer =
+            model.allPlayers
+                |> Dict.values
+                |> List.map (\p -> ( p.id_, p.score ))
+                |> List.sortBy Tuple.second
+                |> List.reverse
+                |> List.head
+                |> Maybe.withDefault ( "INVALID PLAYER", -9999 )
+    in
+    renderGameTemplate model
+        [ h1 [ class "orangeText" ] [ text "GAME OVER!" ]
+        , h3 [] [ text "The Winner is..." ]
+        , h3 [ class "greenText" ] [ text (Tuple.first topPlayer) ]
+        , h3 [] [ text " with " ]
+        , h3 [ class "greenText" ] [ text ((topPlayer |> Tuple.second |> String.fromInt) ++ " point(s)!") ]
+        ]
 
 
-view : FrontendModel -> Html FrontendMsg
+view : FrontendModel -> Document FrontendMsg
 view model =
-    case model.game of
-        Just game ->
-            case game.state of
-                Initial ->
+    let
+        pageContent =
+            case model.game of
+                Just game ->
+                    case game.state of
+                        Initial ->
+                            renderHomePage model
+
+                        Asking ->
+                            renderGamePage Asking model
+
+                        AllReady ->
+                            renderGamePage AllReady model
+
+                        PlayersGuessing ->
+                            renderGuessPage model
+
+                        Results ->
+                            renderResultsPage model
+
+                        FinishedGame ->
+                            renderFinalPage model
+
+                Nothing ->
                     renderHomePage model
-
-                Asking ->
-                    renderGamePage Asking model
-
-                AllReady ->
-                    renderGamePage AllReady model
-
-                PlayersGuessing ->
-                    renderGuessPage model
-
-                Results ->
-                    renderResultsPage model
-
-                FinishedGame ->
-                    renderFinalPage model
-
-        Nothing ->
-            renderHomePage model
+    in
+    { title = "3 Truths 1 Lie"
+    , body =
+        [ Html.node "link" [ rel "stylesheet", href "/css/main.css" ] []
+        , div [ class "flexCenter" ] pageContent
+        ]
+    }

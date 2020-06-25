@@ -8,6 +8,28 @@ import Set exposing (Set)
 import Url exposing (Url)
 
 
+
+-- Define your colors
+
+
+redIcon : RGBA
+redIcon =
+    RGBA 0.94 0.24 0.3 1
+
+
+greenIcon : RGBA
+greenIcon =
+    RGBA 0.17 0.6 0.3 1
+
+
+type alias RGBA =
+    { red : Float
+    , green : Float
+    , blue : Float
+    , alpha : Float
+    }
+
+
 type alias GameId =
     String
 

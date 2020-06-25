@@ -83,7 +83,6 @@ update msg model =
                                 |> broadcastError model game.id_
 
                 Nothing ->
-                    -- TODO:  Send message to front to end the game!
                     let
                         newGame =
                             { game
@@ -98,7 +97,7 @@ update msg model =
                                 | games = model.games |> Dict.insert game.id_ newGame
                             }
                     in
-                    update (CleanupGame game) newModel
+                    update (CleanupGame newGame) newModel
 
         AnswersShuffled game shuffledAnswers ->
             -- New active player's answers are now shuffled, tell the players about the new round

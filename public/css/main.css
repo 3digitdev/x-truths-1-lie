@@ -1,32 +1,51 @@
+html {
+    height: 100%;
+}
+
 body {
     font-family: sans-serif;
-    background-color: #FADAB3;
+    background-color: #233354;
+    color: #233354;
+    height: 100%;
 }
 
 h1 {
-    font-size: 48pt;
+    font-size: 4rem;
+    margin-block-start: 0;
     margin-block-end: 1rem;
 }
 
+h3 {
+    font-size: 2.5rem;
+}
+
 .error {
-    color: #f03d4d;
+    color: #F03D4D;
     font-weight: bolder;
-    font-size: 14pt;
+    font-size: 1rem;
 }
 
 div.container {
     text-align: center;
+    background-color: #F0F2F0;
+    padding: 3rem;
+    min-width: 40%;
+    max-width: 40%;
+    box-shadow: 0 0 40px black;
+    max-height: 96%;
+    margin: 1% 0 1% 0;
 }
 
 div.flexCenter {
     display: flex;
     justify-content: center;
     align-items: center;
+    align-content: center;
     height: 100%;
 }
 
 div.formField {
-    font-size: 16pt;
+    font-size: 1.5rem;
     margin: 1rem;
 }
 
@@ -37,22 +56,119 @@ label {
 
 input.formInput {
     min-height: 2rem;
-    font-size: 16pt;
+    font-size: 1.5rem;
 }
 
 
 button.largeButton {
-    font-size: 20pt;
+    font-size: 2rem;
     min-width: 12rem;
-    background-color: #252025;
-    color: #FEFEFE;
-    margin-top: 10px;
+    background-color: #C2602F;
+    color: #F0F2F0;
+    margin: 10px 10px 0 10px;
     height: 4rem;
     border: 0;
-    box-shadow: 0 0 8px #888888;
+    box-shadow: 0 0 16px #888888;
 }
 
 button.largeButton:active {
-    background-color: #FEFEFE;
-    color: #252025;
+    background-color: #F0F2F0;
+    color: #C2602F;
+}
+
+div.playerContainer {
+    text-align: center;
+    position: absolute;
+    right: 5%;
+    left: auto;
+    padding: 0.75rem;
+    background-color: #F0F2F0;
+    margin: 1% 0 1% 0;
+    max-height: 96%;
+    overflow-y: scroll;
+}
+
+div.playerContainer h3 {
+    margin-block-end: 0;
+}
+
+ul.playerList {
+    list-style-type: none;
+    padding-left: 0;
+    padding: 1rem;
+}
+
+li.playerCard {
+    margin: 0.25rem 0 0.5rem 0;
+    font-size: 1.5rem;
+}
+
+div.playerDiv {
+    display: flex;
+    justify-content: left;
+    align-items: center;
+}
+
+p.playerName {
+    display: inline;
+    font-size: 1.5rem;
+    margin: 0;
+}
+
+label.answerLabel {
+    font-size: 2rem;
+}
+
+input.answerInput {
+    min-height: 2rem;
+    font-size: 1.5rem;
+    width: 30rem;
+}
+
+div.startButtonContainer {
+    margin-top: 2rem;
+
+}
+
+div.startButtonContainer button {
+    background-color: #2C994D;
+}
+
+.hidden {
+    display: none;
+}
+
+button.activeAnswer {
+    width: 100%;
+    min-height: 4rem;
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+    white-space: normal;
+    word-wrap: break-word;
+}
+
+button.chosen {
+    color: #F0F2F0;
+    background-color: #233354;
+}
+
+h3.truthAnswer {
+    color: #2C994D;
+}
+
+h3.lieAnswer {
+    color: #F03D4D;
+}
+
+h4 {
+    font-size: 1.5rem;
+    word-wrap: break-word;
+}
+
+.greenText {
+    color: #2C994D;
+}
+
+.orangeText{
+    color: #C2602F;
 }
