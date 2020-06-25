@@ -64,16 +64,22 @@ update msg model =
                     case model.players |> Dict.get nextPid of
                         Just nextPlayer ->
                             let
+                                newPlayer =
+                                    { nextPlayer | status = Guessed }
+
                                 newGame =
                                     { game
-                                        | activePlayer = Just nextPlayer
+                                        | activePlayer = Just newPlayer
                                         , playerTurnOver = nextPid :: game.playerTurnOver
                                     }
 
                                 allAnswers =
-                                    nextPlayer.lie :: nextPlayer.truths
+                                    newPlayer.lie :: newPlayer.truths
                             in
-                            ( { model | games = model.games |> Dict.insert newGame.id_ newGame }
+                            ( { model
+                                | games = model.games |> Dict.insert newGame.id_ newGame
+                                , players = model.players |> Dict.insert newPlayer.id_ newPlayer
+                              }
                             , Random.generate (AnswersShuffled newGame) (RL.shuffle allAnswers)
                             )
 
@@ -135,14 +141,7 @@ update msg model =
                 scoreMods =
                     game.currentGuesses
                         |> Dict.toList
-                        |> List.map
-                            (\( pid, guess ) ->
-                                if guess == correctIndex then
-                                    ( pid, 1 )
-
-                                else
-                                    ( pid, 0 )
-                            )
+                        |> List.map (\guessTuple -> getScoreMod guessTuple correctIndex)
                         |> Dict.fromList
 
                 -- Update players in the game with the new score modifier they have
@@ -426,6 +425,15 @@ updateFromFrontend sessionId clientId msg model =
                 Nothing ->
                     Fatal "Couldn't find game to go to next round"
                         |> broadcastError model gameId
+
+
+getScoreMod : ( PlayerId, Int ) -> Int -> ( PlayerId, Int )
+getScoreMod ( playerId, guess ) correctIndex =
+    if guess == correctIndex then
+        ( playerId, 1 )
+
+    else
+        ( playerId, 0 )
 
 
 type ValidationSource

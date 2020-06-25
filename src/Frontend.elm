@@ -86,11 +86,9 @@ update msg model =
             ( model, sendToBackend (AddPlayerToGame model.gameId model.playerName) )
 
         SubmitAnswers ->
-            -- TODO:  Validate the inputs!!
             ( model, sendToBackend (LockPlayerAnswers model.gameId model.playerName model.truths model.lie) )
 
         StartGame ->
-            -- onClick event for the host-only "Start Game" button
             ( model, sendToBackend (StartTheGame model.gameId) )
 
         UpdatedPlayerGuess index ->
@@ -433,6 +431,7 @@ renderGuessPage model =
                                         in
                                         button
                                             [ class ("activeAnswer" ++ toggleClass)
+                                            , disabled (activePlayer.id_ == model.playerName)
                                             , onClick (UpdatedPlayerGuess i)
                                             ]
                                             [ text answer.text ]
@@ -440,6 +439,7 @@ renderGuessPage model =
                             )
                         , button
                             [ class ("largeButton" ++ hideClass)
+                            , disabled (activePlayer.id_ == model.playerName)
                             , onClick SubmitGuess
                             ]
                             [ text "Submit Guess" ]
@@ -511,21 +511,28 @@ renderResultsPage model =
 renderFinalPage : FrontendModel -> List (Html FrontendMsg)
 renderFinalPage model =
     let
-        topPlayer =
+        topScore =
             model.allPlayers
                 |> Dict.values
-                |> List.map (\p -> ( p.id_, p.score ))
-                |> List.sortBy Tuple.second
+                |> List.map (\p -> p.score)
+                |> List.sort
                 |> List.reverse
                 |> List.head
-                |> Maybe.withDefault ( "INVALID PLAYER", -9999 )
+                |> Maybe.withDefault -9999
+
+        topPlayers =
+            model.allPlayers
+                |> Dict.values
+                |> List.filter (\p -> p.score == topScore)
+                |> List.map .id_
+                |> String.join ", "
     in
     renderGameTemplate model
         [ h1 [ class "orangeText" ] [ text "GAME OVER!" ]
-        , h3 [] [ text "The Winner is..." ]
-        , h3 [ class "greenText" ] [ text (Tuple.first topPlayer) ]
+        , h3 [] [ text "The Winner(s)" ]
+        , h3 [ class "greenText" ] [ text topPlayers ]
         , h3 [] [ text " with " ]
-        , h3 [ class "greenText" ] [ text ((topPlayer |> Tuple.second |> String.fromInt) ++ " point(s)!") ]
+        , h3 [ class "greenText" ] [ text (String.fromInt topScore ++ " point(s)!") ]
         ]
 
 
