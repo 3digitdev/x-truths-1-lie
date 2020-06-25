@@ -172,3 +172,8 @@ h4 {
 .orangeText{
     color: #C2602F;
 }
+
+p.instructions {
+    font-size: 1.5rem;
+    font-style: italic;
+}

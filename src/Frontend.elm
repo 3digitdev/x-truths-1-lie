@@ -412,6 +412,7 @@ renderGuessPage model =
                 ( Just activePlayer, activeAnswers ) ->
                     renderGameTemplate model
                         [ h3 [] [ text ("Guessing for: " ++ activePlayer.id_) ]
+                        , p [ class "instructions" ] [ text "Select the lie and hit \"Submit\"! No backsies.  :)" ]
                         , div [ class "activeAnswers" ]
                             (activeAnswers
                                 |> List.indexedMap
