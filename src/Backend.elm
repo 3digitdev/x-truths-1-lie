@@ -462,13 +462,10 @@ updateFromFrontend sessionId clientId msg model =
                         newClientMap =
                             model.clientMap
                                 |> Dict.insert ng.id_
-                                    (Debug.log
-                                        "newPlayerClients"
-                                        (model.clientMap
-                                            |> Dict.get ng.id_
-                                            |> Maybe.withDefault []
-                                            |> List.filter ((/=) (Debug.log "playerClient" playerClientId))
-                                        )
+                                    (model.clientMap
+                                        |> Dict.get ng.id_
+                                        |> Maybe.withDefault []
+                                        |> List.filter ((/=) playerClientId)
                                     )
                     in
                     ( { model
