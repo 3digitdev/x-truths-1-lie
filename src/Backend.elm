@@ -30,6 +30,7 @@ init =
       , clientMap = Dict.empty
       , games = Dict.empty
       , players = Dict.empty
+      , playerClientMap = Dict.empty
       }
     , Cmd.none
     )
@@ -165,17 +166,10 @@ update msg model =
                 gamePlayers =
                     newPlayers
                         |> Dict.filter (\k _ -> game.players |> List.member k)
-
-                -- Update the game to clear out the round's data
-                newGame =
-                    { game | currentAnswers = [], currentGuesses = Dict.empty }
             in
-            ( { model
-                | players = newPlayers
-                , games = model.games |> Dict.insert game.id_ newGame
-              }
-            , AnswerWithUpdatedScores newGame gamePlayers correctAnswer
-                |> broadcast model.clientMap newGame.id_
+            ( { model | players = newPlayers }
+            , AnswerWithUpdatedScores game gamePlayers correctAnswer
+                |> broadcast model.clientMap game.id_
             )
 
         CleanupGame game ->
@@ -233,6 +227,9 @@ updateFromFrontend sessionId clientId msg model =
                                 |> Maybe.withDefault []
                                 |> List.append [ clientId ]
 
+                        newPCMap =
+                            model.playerClientMap |> Dict.insert hostName clientId
+
                         allPlayers =
                             newGame |> getPlayerMapIncluding hostName hostPlayer model
                     in
@@ -240,6 +237,7 @@ updateFromFrontend sessionId clientId msg model =
                         | clientMap = model.clientMap |> Dict.insert gameId newClientMapList
                         , games = model.games |> Dict.insert gameId newGame
                         , players = model.players |> Dict.insert hostName hostPlayer
+                        , playerClientMap = newPCMap
                       }
                     , sendToFrontend clientId (GameCreated newGame allPlayers)
                     )
@@ -268,6 +266,9 @@ updateFromFrontend sessionId clientId msg model =
                         newClientMap =
                             model.clientMap |> updateClientMap gameId clientId
 
+                        newPCMap =
+                            model.playerClientMap |> Dict.insert playerName clientId
+
                         newPlayers =
                             existingGame |> getPlayerMapIncluding playerName newPlayer model
                     in
@@ -277,6 +278,7 @@ updateFromFrontend sessionId clientId msg model =
                         , players =
                             model.players
                                 |> Dict.insert playerName newPlayer
+                        , playerClientMap = newPCMap
                       }
                     , PlayerJoinedTF existingGame newPlayers |> broadcast newClientMap gameId
                     )
@@ -425,6 +427,79 @@ updateFromFrontend sessionId clientId msg model =
                 Nothing ->
                     Fatal "Couldn't find game to go to next round"
                         |> broadcastError model gameId
+
+        DeletePlayer gameId playerId ->
+            let
+                ( newGame, players ) =
+                    case model.games |> Dict.get gameId of
+                        Just game ->
+                            ( Just
+                                { game
+                                    | players = game.players |> List.filter ((/=) playerId)
+                                    , currentGuesses = game.currentGuesses |> Dict.remove playerId
+                                    , playerTurnOver = game.playerTurnOver |> List.filter ((/=) playerId)
+                                }
+                            , game.players
+                                |> List.filter ((/=) playerId)
+                                |> List.map
+                                    (\pid -> model.players |> Dict.get pid)
+                                |> values
+                                |> List.map (\p -> ( p.id_, p ))
+                                |> Dict.fromList
+                            )
+
+                        Nothing ->
+                            ( Nothing, Dict.empty )
+
+                playerClientId =
+                    model.playerClientMap
+                        |> Dict.get playerId
+                        |> Maybe.withDefault ""
+            in
+            case newGame of
+                Just ng ->
+                    let
+                        newClientMap =
+                            model.clientMap
+                                |> Dict.insert ng.id_
+                                    (Debug.log
+                                        "newPlayerClients"
+                                        (model.clientMap
+                                            |> Dict.get ng.id_
+                                            |> Maybe.withDefault []
+                                            |> List.filter ((/=) (Debug.log "playerClient" playerClientId))
+                                        )
+                                    )
+                    in
+                    ( { model
+                        | players = model.players |> Dict.remove playerId
+                        , games = model.games |> Dict.insert ng.id_ ng
+                        , clientMap = newClientMap
+                        , playerClientMap = model.playerClientMap |> Dict.remove playerId
+                      }
+                    , PlayerDeleted ng players playerId |> broadcast model.clientMap ng.id_
+                    )
+
+                Nothing ->
+                    Fatal "Couldn't find game when booting player"
+                        |> broadcastError model gameId
+
+        DeleteGame game ->
+            let
+                newPCMap =
+                    model.playerClientMap
+                        |> Dict.filter (\k v -> game.players |> List.member k |> not)
+            in
+            ( { model
+                | clientMap = model.clientMap |> Dict.remove game.id_
+                , players =
+                    model.players
+                        |> Dict.filter (\k _ -> game.players |> List.member k |> not)
+                , games = model.games |> Dict.remove game.id_
+                , playerClientMap = newPCMap
+              }
+            , GameDeleted |> broadcast model.clientMap game.id_
+            )
 
 
 getScoreMod : ( PlayerId, Int ) -> Int -> ( PlayerId, Int )

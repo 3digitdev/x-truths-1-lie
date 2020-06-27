@@ -22,6 +22,11 @@ greenIcon =
     RGBA 0.17 0.6 0.3 1
 
 
+blackIcon : RGBA
+blackIcon =
+    RGBA 0 0 0 1
+
+
 type alias RGBA =
     { red : Float
     , green : Float
@@ -138,6 +143,7 @@ type alias FrontendModel =
     , truths : List Answer
     , lie : Answer
     , currentGuess : Maybe Int
+    , guessText : Maybe String
 
     -- The game
     , game : Maybe Game
@@ -155,6 +161,7 @@ type alias BackendModel =
     , clientMap : ClientMap
     , games : Dict GameId Game
     , players : PlayerMapping
+    , playerClientMap : Dict PlayerId ClientId
     }
 
 
@@ -170,6 +177,8 @@ type FrontendMsg
     | StartGame
     | SubmitGuess
     | GoToNextRound
+    | HostDeletesGame
+    | BootPlayer PlayerId
     | NoOpFront
 
 
@@ -181,6 +190,8 @@ type ToBackend
     | StartTheGame GameId
     | SubmitPlayerGuess GameId PlayerId Int
     | NextRoundForGame GameId
+    | DeletePlayer GameId PlayerId
+    | DeleteGame Game
 
 
 type BackendMsg
@@ -201,3 +212,5 @@ type ToFrontend
     | PlayerGuessed Game Player
     | AnswerWithUpdatedScores Game PlayerMapping String
     | GameOver Game PlayerMapping
+    | PlayerDeleted Game PlayerMapping PlayerId
+    | GameDeleted

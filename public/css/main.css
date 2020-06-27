@@ -177,3 +177,7 @@ p.instructions {
     font-size: 1.5rem;
     font-style: italic;
 }
+
+button.deleteButton {
+    margin-left: 20px;
+}
