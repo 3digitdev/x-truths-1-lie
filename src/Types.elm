@@ -68,12 +68,18 @@ type Status
     | Finished
 
 
+type PlayerType
+    = Participant
+    | Spectator
+
+
 type alias Player =
     { id_ : PlayerId
     , truths : List Answer
     , lie : Answer
     , score : Score
     , status : Status
+    , type_ : PlayerType
     }
 
 
@@ -105,6 +111,7 @@ type ErrorType
     | NameRequired
     | NameExists
     | NoGuessChosen
+    | AutoSpectator
     | Fatal String
 
 
@@ -129,6 +136,9 @@ errorToString errorType =
         NoGuessChosen ->
             "You must select a guess to continue"
 
+        AutoSpectator ->
+            "You have joined a game in progress and are a spectator.  You can still guess!"
+
         Fatal someError ->
             "FATAL:  " ++ someError
 
@@ -140,6 +150,7 @@ type alias FrontendModel =
     -- Player stuff
     , gameId : GameId
     , playerName : PlayerId
+    , isSpectator : Bool
     , truths : List Answer
     , lie : Answer
     , currentGuess : Maybe Int
@@ -170,6 +181,8 @@ type FrontendMsg
     | UpdatedName PlayerId
     | UpdatedTruth Int String
     | UpdatedLie String
+    | ToggleSpectator
+    | ToggleParticipant
     | UpdatedPlayerGuess Int
     | HostGame
     | JoinGame
@@ -184,8 +197,8 @@ type FrontendMsg
 
 type ToBackend
     = ClientJoin
-    | CreateGame GameId PlayerId
-    | AddPlayerToGame GameId PlayerId
+    | CreateGame GameId PlayerId Bool
+    | AddPlayerToGame GameId PlayerId Bool
     | LockPlayerAnswers GameId PlayerId (List Answer) Answer
     | StartTheGame GameId
     | SubmitPlayerGuess GameId PlayerId Int
@@ -205,7 +218,7 @@ type BackendMsg
 type ToFrontend
     = Error (List ErrorType)
     | GameCreated Game PlayerMapping
-    | PlayerJoinedTF Game PlayerMapping
+    | PlayerJoinedTF Game PlayerMapping Bool
     | PlayerUpdated Player
     | LastPlayerLocked Player Game
     | NextRoundReady Game PlayerMapping

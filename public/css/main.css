@@ -19,6 +19,12 @@ h3 {
     font-size: 2.5rem;
 }
 
+
+button.spectatorToggle {
+    height: 2.5rem;
+    width: 5rem;
+}
+
 .error {
     color: #F03D4D;
     font-weight: bolder;
@@ -30,7 +36,6 @@ div.container {
     background-color: #F0F2F0;
     padding: 3rem;
     min-width: 40%;
-    max-width: 40%;
     box-shadow: 0 0 40px black;
     max-height: 96%;
     margin: 1% 0 1% 0;
@@ -138,6 +143,11 @@ div.startButtonContainer button {
     display: none;
 }
 
+button.disabled {
+    background-color: gray;
+    color: white;
+}
+
 button.activeAnswer {
     width: 100%;
     min-height: 4rem;
@@ -180,4 +190,29 @@ p.instructions {
 
 button.deleteButton {
     margin-left: 20px;
+}
+
+span.playerEye {
+    margin-left: 5px;
+}
+
+
+@media only screen and (max-width: 1800px) {
+  div.flexCenter.isHome {
+      justify-content: center;
+  }
+  div.flexCenter {
+      justify-content: flex-start;
+      margin-left: 15%;
+  }
+}
+
+@media only screen and (max-width: 1500px) {
+  div.flexCenter.isHome {
+      justify-content: center;
+  }
+  div.flexCenter {
+      justify-content: flex-start;
+      margin-left: 5rem;
+  }
 }

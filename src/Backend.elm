@@ -197,7 +197,7 @@ updateFromFrontend sessionId clientId msg model =
             , Cmd.none
             )
 
-        CreateGame gameId hostName ->
+        CreateGame gameId hostName isSpectator ->
             -- A new host asked to create a game
             case model |> validateInput gameId hostName Host of
                 ( [], _ ) ->
@@ -207,7 +207,18 @@ updateFromFrontend sessionId clientId msg model =
                             , truths = []
                             , lie = Answer "" Lie
                             , score = 0
-                            , status = NotReady
+                            , status =
+                                if isSpectator then
+                                    Ready
+
+                                else
+                                    NotReady
+                            , type_ =
+                                if isSpectator then
+                                    Spectator
+
+                                else
+                                    Participant
                             }
 
                         newGame =
@@ -245,22 +256,45 @@ updateFromFrontend sessionId clientId msg model =
                 ( errors, _ ) ->
                     ( model, sendToFrontend clientId (Error errors) )
 
-        AddPlayerToGame gameId playerName ->
+        AddPlayerToGame gameId playerName isSpectator ->
             -- A new player wants to join an existing game
             case model |> validateInput gameId playerName Join of
                 ( [], Just game ) ->
                     let
+                        gameInProgress =
+                            [ PlayersGuessing, Results, FinishedGame ]
+                                |> List.member game.state
+
                         newPlayer =
                             { id_ = playerName
                             , truths = []
                             , lie = Answer "" Lie
                             , score = 0
-                            , status = NotReady
+                            , status =
+                                if isSpectator then
+                                    Ready
+
+                                else
+                                    NotReady
+                            , type_ =
+                                if isSpectator || gameInProgress then
+                                    Spectator
+
+                                else
+                                    Participant
                             }
+
+                        newTurnOver =
+                            if gameInProgress then
+                                playerName :: game.playerTurnOver
+
+                            else
+                                game.playerTurnOver
 
                         existingGame =
                             { game
                                 | players = playerName :: game.players
+                                , playerTurnOver = newTurnOver
                             }
 
                         newClientMap =
@@ -280,7 +314,7 @@ updateFromFrontend sessionId clientId msg model =
                                 |> Dict.insert playerName newPlayer
                         , playerClientMap = newPCMap
                       }
-                    , PlayerJoinedTF existingGame newPlayers |> broadcast newClientMap gameId
+                    , PlayerJoinedTF existingGame newPlayers gameInProgress |> broadcast newClientMap gameId
                     )
 
                 ( errors, _ ) ->
@@ -331,8 +365,12 @@ updateFromFrontend sessionId clientId msg model =
                                 |> List.map (\p -> ( p.id_, p ))
                                 |> Dict.fromList
 
+                        spectators =
+                            game.players
+                                |> List.filter (\pid -> model |> playerIsSpectator pid)
+
                         newGame =
-                            { game | state = PlayersGuessing }
+                            { game | state = PlayersGuessing, playerTurnOver = spectators }
                     in
                     update (PickNextPlayer gameId)
                         { model
@@ -497,6 +535,16 @@ updateFromFrontend sessionId clientId msg model =
               }
             , GameDeleted |> broadcast model.clientMap game.id_
             )
+
+
+playerIsSpectator : PlayerId -> Model -> Bool
+playerIsSpectator pid model =
+    case model.players |> Dict.get pid of
+        Just player ->
+            player.type_ == Spectator
+
+        Nothing ->
+            False
 
 
 getScoreMod : ( PlayerId, Int ) -> Int -> ( PlayerId, Int )

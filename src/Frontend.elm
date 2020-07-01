@@ -41,6 +41,7 @@ initModel =
     -- Player stuff
     , gameId = ""
     , playerName = ""
+    , isSpectator = False
     , truths = [ Answer "" Truth, Answer "" Truth, Answer "" Truth ]
     , lie = Answer "" Lie
     , currentGuess = Nothing
@@ -82,11 +83,17 @@ update msg model =
         UpdatedLie text ->
             ( { model | lie = Answer text Lie }, Cmd.none )
 
+        ToggleSpectator ->
+            ( { model | isSpectator = True }, Cmd.none )
+
+        ToggleParticipant ->
+            ( { model | isSpectator = False }, Cmd.none )
+
         HostGame ->
-            ( model, sendToBackend (CreateGame model.gameId model.playerName) )
+            ( model, sendToBackend (CreateGame model.gameId model.playerName model.isSpectator) )
 
         JoinGame ->
-            ( model, sendToBackend (AddPlayerToGame model.gameId model.playerName) )
+            ( model, sendToBackend (AddPlayerToGame model.gameId model.playerName model.isSpectator) )
 
         SubmitAnswers ->
             ( model, sendToBackend (LockPlayerAnswers model.gameId model.playerName model.truths model.lie) )
@@ -158,12 +165,18 @@ updateFromBackend msg model =
             , Cmd.none
             )
 
-        PlayerJoinedTF game allPlayers ->
+        PlayerJoinedTF game allPlayers gameInProgress ->
             -- The new player has joined an existing game
             ( { model
                 | game = Just game
                 , allPlayers = allPlayers
-                , errors = []
+                , isSpectator = gameInProgress
+                , errors =
+                    if gameInProgress then
+                        [ AutoSpectator ]
+
+                    else
+                        []
               }
             , Cmd.none
             )
@@ -283,10 +296,58 @@ renderHomePage model =
                     ]
                 , td [] [ text "(max 16 chars)" ]
                 ]
+            , tr [ class "formField", align "right" ]
+                [ td [] [ label [ for "playerType" ] [ text "Spectator?" ] ]
+                , td [ align "left" ]
+                    [ button
+                        [ class
+                            ("spectatorToggle"
+                                ++ (if model.isSpectator then
+                                        " chosen"
+
+                                    else
+                                        ""
+                                   )
+                            )
+                        , onClick ToggleSpectator
+                        ]
+                        [ text "Yes" ]
+                    , button
+                        [ class
+                            ("spectatorToggle"
+                                ++ (if model.isSpectator then
+                                        ""
+
+                                    else
+                                        " chosen"
+                                   )
+                            )
+                        , onClick ToggleParticipant
+                        ]
+                        [ text "No" ]
+                    ]
+                , td [ align "left" ]
+                    [ span
+                        [ class "spectatorInfo"
+                        , title "Spectators do not submit answers but they can still guess and win games!"
+                        ]
+                        [ Ionicon.informationCircled 32 Types.blackIcon ]
+                    ]
+                ]
             ]
         , button
-            [ class "largeButton"
+            [ class
+                ("largeButton"
+                    ++ (if model.isSpectator then
+                            " disabled"
+
+                        else
+                            ""
+                       )
+                )
             , onClick HostGame
+            , disabled model.isSpectator
+            , title "Spectators cannot host games"
             ]
             [ text "Host a Game" ]
         , button
@@ -302,7 +363,7 @@ renderHomePage model =
 renderGameTemplate : FrontendModel -> List (Html FrontendMsg) -> List (Html FrontendMsg)
 renderGameTemplate model content =
     let
-        ( deleteButtonHidden, nextButtonHidden ) =
+        ( hostButtonsHidden, nextButtonHidden ) =
             case model.game of
                 Just game ->
                     case ( model.playerName |> isHostOf game, game.activePlayer ) of
@@ -352,14 +413,30 @@ renderGameTemplate model content =
                                             ++ " points "
                                         )
                                     ]
-                                , div [ class "bootPlayer", onClick (BootPlayer player.id_) ] [ Ionicon.eject 32 Types.blackIcon ]
+                                , span
+                                    [ class
+                                        ("playerEye"
+                                            ++ (if player.type_ == Participant then
+                                                    " hidden"
+
+                                                else
+                                                    ""
+                                               )
+                                        )
+                                    ]
+                                    [ Ionicon.eye 32 Types.blackIcon ]
+                                , div
+                                    [ class ("bootPlayer" ++ hostButtonsHidden)
+                                    , onClick (BootPlayer player.id_)
+                                    ]
+                                    [ Ionicon.eject 32 Types.blackIcon ]
                                 ]
                             ]
                     )
                 |> Dict.values
             )
         , button
-            [ class ("largeButton deleteButton" ++ deleteButtonHidden)
+            [ class ("largeButton deleteButton" ++ hostButtonsHidden)
             , onClick HostDeletesGame
             ]
             [ text "DELETE GAME" ]
@@ -375,6 +452,7 @@ renderGameTemplate model content =
         (content
             |> List.append
                 [ h1 [] [ text "3 Truths 1 Lie" ]
+                , renderErrorSection model
                 ]
         )
     ]
@@ -671,34 +749,34 @@ renderFinalPage model =
 view : FrontendModel -> Document FrontendMsg
 view model =
     let
-        pageContent =
+        ( pageContent, isHome ) =
             case model.game of
                 Just game ->
                     case game.state of
                         Initial ->
-                            renderHomePage model
+                            ( renderHomePage model, " isHome" )
 
                         Asking ->
-                            renderGamePage Asking model
+                            ( renderGamePage Asking model, "" )
 
                         AllReady ->
-                            renderGamePage AllReady model
+                            ( renderGamePage AllReady model, "" )
 
                         PlayersGuessing ->
-                            renderGuessPage model
+                            ( renderGuessPage model, "" )
 
                         Results ->
-                            renderResultsPage model
+                            ( renderResultsPage model, "" )
 
                         FinishedGame ->
-                            renderFinalPage model
+                            ( renderFinalPage model, "" )
 
                 Nothing ->
-                    renderHomePage model
+                    ( renderHomePage model, " isHome" )
     in
     { title = "3 Truths 1 Lie"
     , body =
         [ Html.node "link" [ rel "stylesheet", href "/css/main.css" ] []
-        , div [ class "flexCenter" ] pageContent
+        , div [ class ("flexCenter" ++ isHome) ] pageContent
         ]
     }
