@@ -19,6 +19,10 @@ h3 {
     font-size: 2.5rem;
 }
 
+div.activeAnswers {
+    width: 75%;
+}
+
 
 button.spectatorToggle {
     height: 2.5rem;
